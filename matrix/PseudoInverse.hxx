@@ -79,49 +79,6 @@ SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> & A,
     return L;
 }
 
-template< typename Type, size_t M, size_t N, size_t R>
-class GeninvImpl
-{
-public:
-    static Matrix<Type, N, M> genInvUnderdetermined(const Matrix<Type, M, N> & G, const Matrix<Type, M, M> & L, size_t rank)
-    {
-        if (rank < R) {
-            // Recursive call
-            return GeninvImpl<Type, M, N, R - 1>::genInvUnderdetermined(G, L, rank);
-
-        } else if (rank > R) {
-            // Error
-            return Matrix<Type, N, M>();
-
-        } else {
-            // R == rank
-            Matrix<Type, M, R> LL = L. template slice<M, R>(0, 0);
-            SquareMatrix<Type, R> X = inv(SquareMatrix<Type, R>(LL.transpose() * LL));
-            return G.transpose() * LL * X * X * LL.transpose();
-
-        }
-    }
-
-    static Matrix<Type, N, M> genInvOverdetermined(const Matrix<Type, M, N> & G, const Matrix<Type, N, N> & L, size_t rank)
-    {
-        if (rank < R) {
-            // Recursive call
-            return GeninvImpl<Type, M, N, R - 1>::genInvOverdetermined(G, L, rank);
-
-        } else if (rank > R) {
-            // Error
-            return Matrix<Type, N, M>();
-
-        } else {
-            // R == rank
-            Matrix<Type, N, R> LL = L. template slice<N, R>(0, 0);
-            SquareMatrix<Type, R> X = inv(SquareMatrix<Type, R>(LL.transpose() * LL));
-            return LL * X * X * LL.transpose() * G.transpose();
-
-        }
-    }
-};
-
 // Partial template specialisation for R==0, allows to stop recursion in genInvUnderdetermined and genInvOverdetermined
 template< typename Type, size_t M, size_t N>
 class GeninvImpl<Type, M, N, 0>
@@ -137,3 +94,36 @@ public:
         return Matrix<Type, N, M>();
     }
 };
+
+template< typename Type, size_t M, size_t N, size_t R>
+class GeninvImpl
+{
+public:
+    static Matrix<Type, N, M> genInvUnderdetermined(const Matrix<Type, M, N> & G, const Matrix<Type, M, M> & L, size_t rank)
+    {
+        if (rank == R) {
+            Matrix<Type, M, R> LL = L. template slice<M, R>(0, 0);
+            SquareMatrix<Type, R> X = inv(SquareMatrix<Type, R>(LL.transpose() * LL));
+            return G.transpose() * LL * X * X * LL.transpose();
+        }
+
+        // R < rank
+        // Recursive call
+        return GeninvImpl<Type, M, N, R - 1>::genInvUnderdetermined(G, L, rank);
+    }
+
+    static Matrix<Type, N, M> genInvOverdetermined(const Matrix<Type, M, N> & G, const Matrix<Type, N, N> & L, size_t rank)
+    {
+        if (rank == R) {
+            Matrix<Type, N, R> LL = L. template slice<N, R>(0, 0);
+            SquareMatrix<Type, R> X = inv(SquareMatrix<Type, R>(LL.transpose() * LL));
+            return LL * X * X * LL.transpose() * G.transpose();
+        }
+
+        // rank < R
+        // Recursive call
+        return GeninvImpl<Type, M, N, R - 1>::genInvOverdetermined(G, L, rank);
+    }
+};
+
+
