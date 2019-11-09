@@ -34,18 +34,22 @@ template<typename Type, size_t M, size_t N>
 Matrix<Type, N, M> geninv(const Matrix<Type, M, N> & G)
 {
     size_t rank;
+    Matrix<Type, N, M> GI;
+
     if (M <= N) {
         SquareMatrix<Type, M> A = G * G.transpose();
         SquareMatrix<Type, M> L = fullRankCholesky(A, rank);
 
-        return GeninvImpl<Type, M, N, M>::genInvUnderdetermined(G, L, rank);
+        GeninvImpl<Type, M, N, M>::genInvUnderdetermined(GI, G, L, rank);
 
     } else {
         SquareMatrix<Type, N> A = G.transpose() * G;
         SquareMatrix<Type, N> L = fullRankCholesky(A, rank);
 
-        return GeninvImpl<Type, M, N, N>::genInvOverdetermined(G, L, rank);
+        GeninvImpl<Type, M, N, N>::genInvOverdetermined(GI, G, L, rank);
     }
+
+    return GI;
 }
 
 
